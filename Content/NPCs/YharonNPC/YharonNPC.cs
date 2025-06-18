@@ -6,6 +6,7 @@ using CalamityMod.World;
 using CalamityYharonChange.Content.NPCs.YharonNPC.Modes;
 using CalamityYharonChange.Content.NPCs.YharonNPC.Skills.General;
 using CalamityYharonChange.Content.NPCs.YharonNPC.Skills.Phase1;
+using CalamityYharonChange.Content.NPCs.YharonNPC.Skills.Phase4;
 using CalamityYharonChange.Content.Projs.Bosses.Yharon;
 using CalamityYharonChange.Content.Skys;
 using CalamityYharonChange.Content.Systems;
@@ -17,6 +18,9 @@ using Terraria;
 using Terraria.GameContent.Bestiary;
 using Terraria.Graphics.Effects;
 using static CalamityMod.NPCStats;
+using static Terraria.GameContent.Animations.Actions.NPCs;
+using Blink = CalamityYharonChange.Content.NPCs.YharonNPC.Skills.Phase4.Blink;
+using Wait = CalamityYharonChange.Content.NPCs.YharonNPC.Skills.Phase4.Wait;
 
 namespace CalamityYharonChange.Content.NPCs.YharonNPC
 {
@@ -34,12 +38,14 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
         }
         public static float normalDR = 0.22f;
         public static float EnragedDR = 0.9f;
+        public static int BreathCount;
 
         public static Asset<Texture2D> GlowTextureGreen;
         public static Asset<Texture2D> GlowTextureOrange;
         public static Asset<Texture2D> GlowTexturePurple;
 
         public static int Phase1Music;
+        public static int Phase4Music;
 
         public static int FlareBomb;
         public static int YharonNormalBoomProj;
@@ -52,6 +58,9 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
         public readonly int MusicTimerPhase1 = 52;
         public MusicSupport musicSupport;
         public OnDead onDead;
+        public static int Mode = 0;
+        public static int enrageClock;
+        public static bool Killed;
 
         public List<ExtraAI> extraAIs = new();
 
@@ -78,8 +87,9 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
                 GlowTexturePurple = ModContent.Request<Texture2D>(Texture + "GlowPurple");
             }
             CalamityMod.CalamityMod.bossKillTimes.Add(Type, 14700);
-            
+
             Phase1Music = MusicLoader.GetMusicSlot("CalamityYharonChange/Assets/Sounds/Music/YharonPhase1");
+            Phase4Music = MusicLoader.GetMusicSlot("CalamityYharonChange/Assets/Sounds/Music/theme4");
 
             FlareBomb = ModContent.ProjectileType<FlareBomb>();
             YharonNormalBoomProj = ModContent.ProjectileType<YharonNormalBoomProj>();
@@ -135,13 +145,19 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
                 NPC.active = true;
                 return false;
             }
+            if (CurrentMode is YharonPhase4)
+            {
+                NPC.active = true;
+                NPC.life = 1;
+                return false;
+            }
             return base.CheckDead();
         }
         public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
         {
             modifiers.SetMaxDamage(NPC.life - 1);
             CalamityGlobalNPC calamityGlobalNPC = NPC.Calamity();
-            if(calamityGlobalNPC.AITimer < calamityGlobalNPC.KillTime)
+            if (calamityGlobalNPC.AITimer < calamityGlobalNPC.KillTime)
                 modifiers.FinalDamage *= 2f - (1f - (float)calamityGlobalNPC.AITimer / calamityGlobalNPC.KillTime) - ((float)NPC.life / NPC.lifeMax);
         }
         public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
@@ -158,14 +174,14 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
         }
         public override void AI()
         {
+            if (Mode == 4) enrageClock++;
             musicSupport.Update();
-
             for (int i = 0; i < extraAIs.Count; i++)
             {
                 ExtraAI extraAI = extraAIs[i];
                 extraAI.AI();
             }
-            
+
             if (CurrentSkill is not OnDead && (TargetPlayer.dead || !TargetPlayer.active))
             {
                 CurrentSkill.OnSkillDeactivate(onDead);
@@ -184,6 +200,7 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
                     NPC.dontTakeDamage = true;
                 }
             }
+            //if (CurrentMode is YharonPhase4) Main.NewText(CurrentSkill + " , " + NPC.ai[0]);
             //SkyManager.Instance.Activate(nameof(YharonSky));
             YharonChangeSystem.YharonBoss = -1;
             if (YharonChangeSystem.YharonBoss != -1)
@@ -195,19 +212,42 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
         }
         public override void Init()
         {
+            Killed = false;
+            BreathCount = 3;
             SaveModes = new();
             SaveModesID = new();
             SaveSkills = new();
             SaveSkillsID = new();
             OldSkills = new();
+            enrageClock = 0;
 
             YharonChangeSystem.YharonFixedPos = TargetPlayer.position; // 固定战斗场地位置
             #region 状态
-            YharonPhase1 yharonPhase1 = new YharonPhase1(NPC);
-
-            SkillNPC.Register(yharonPhase1);
-            yharonPhase1.OnEnterMode();
-            CurrentMode = yharonPhase1;
+            if (Mode == 0)
+            {
+                Mode = 1;
+                YharonPhase1 yharonPhase1 = new YharonPhase1(NPC);
+                SkillNPC.Register(yharonPhase1);
+                yharonPhase1.OnEnterMode();
+                CurrentMode = yharonPhase1;
+            }
+            else
+            {
+                if (Mode == 4)
+                {
+                    YharonPhase4 yharonPhase4 = new YharonPhase4(NPC);
+                    SkillNPC.Register(yharonPhase4);
+                    yharonPhase4.OnEnterMode();
+                    CurrentMode = yharonPhase4;
+                }
+                else
+                {
+                    YharonPhase1 yharonPhase1 = new YharonPhase1(NPC);
+                    SkillNPC.Register(yharonPhase1);
+                    yharonPhase1.OnEnterMode();
+                    CurrentMode = yharonPhase1;
+                }
+            }
             #endregion
             #region 技能
             #region 通用
@@ -215,26 +255,71 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
             SkillNPC.Register(onDead);
             #endregion
             #region 第一阶段
-            Phase1NoAtk noAtk = new(NPC);
-            
-            FirstAttack_ProjHell firstAttack_ProjHell = new(NPC);
-
-            SecondAttack_Wind secondAttack_Wind = new(NPC);
-
-            Dash firstAttack_dash_1 = new(NPC, 60, 35)
+            if (Mode == 1)
             {
-                OnDashAI = (_) => NPC.dontTakeDamage = false
-            };
-            Dash firstAttack_dash_2 = new(NPC, 30, 35);
-            DashSystem thirdAttack_dashSystem = new(NPC, new List<Dash>() { firstAttack_dash_1, firstAttack_dash_2 });
-            FourthAttack_SP_Dash fourthAttack_SP_Dash = new(NPC);
+                Phase1NoAtk noAtk = new(NPC);
 
-            Phase1FinallyAttack phase1FinallyAttack = new(NPC);
+                FirstAttack_ProjHell firstAttack_ProjHell = new(NPC);
 
-            SkillNPC.Register(noAtk, firstAttack_ProjHell,firstAttack_dash_1,firstAttack_dash_2, secondAttack_Wind, thirdAttack_dashSystem, fourthAttack_SP_Dash, phase1FinallyAttack); // 注册技能
-            phase1FinallyAttack.AddBySkilles(firstAttack_ProjHell, secondAttack_Wind, thirdAttack_dashSystem, fourthAttack_SP_Dash);
-            noAtk.AddSkill(firstAttack_ProjHell).AddSkill(secondAttack_Wind).AddSkill(thirdAttack_dashSystem).AddSkill(fourthAttack_SP_Dash).AddSkill(firstAttack_ProjHell); // 技能链
-            CurrentSkill = noAtk;
+                SecondAttack_Wind secondAttack_Wind = new(NPC);
+
+                Dash firstAttack_dash_1 = new(NPC, 60, 35)
+                {
+                    OnDashAI = (_) => NPC.dontTakeDamage = false
+                };
+                Dash firstAttack_dash_2 = new(NPC, 30, 35);
+                DashSystem thirdAttack_dashSystem = new(NPC, new List<Dash>() { firstAttack_dash_1, firstAttack_dash_2 });
+                FourthAttack_SP_Dash fourthAttack_SP_Dash = new(NPC);
+
+                Phase1FinallyAttack phase1FinallyAttack = new(NPC);
+
+                SkillNPC.Register(noAtk, firstAttack_ProjHell, firstAttack_dash_1, firstAttack_dash_2, secondAttack_Wind, thirdAttack_dashSystem, fourthAttack_SP_Dash, phase1FinallyAttack); // 注册技能
+                phase1FinallyAttack.AddBySkilles(firstAttack_ProjHell, secondAttack_Wind, thirdAttack_dashSystem, fourthAttack_SP_Dash);
+                noAtk.AddSkill(firstAttack_ProjHell).AddSkill(secondAttack_Wind).AddSkill(thirdAttack_dashSystem).AddSkill(fourthAttack_SP_Dash).AddSkill(firstAttack_ProjHell); // 技能链
+                CurrentSkill = noAtk;
+            }
+            #endregion
+            #region 第四阶段
+            if (Mode == 4)
+            {
+                Insignia Ins = new(NPC);
+                SteppingExplosion step1 = new SteppingExplosion(NPC);
+                SteppingExplosion step2 = new SteppingExplosion(NPC);
+                Dash P4Dash11 = new(NPC, 40, 60)
+                {
+                    OnDashAI = (_) => NPC.dontTakeDamage = false
+                };
+                Dash P4Dash12 = new(NPC, 40, 60)
+                {
+                    OnDashAI = (_) => NPC.dontTakeDamage = false
+                };
+                Dash P4Dash21 = new(NPC, 20, 45)
+                {
+                    OnDashAI = (_) => NPC.dontTakeDamage = false
+                };
+                Dash P4Dash22 = new(NPC, 20, 45)
+                {
+                    OnDashAI = (_) => NPC.dontTakeDamage = false
+                };
+                DashSystem D11 = new(NPC, new List<Dash>() { P4Dash11 });
+                DashSystem D21 = new(NPC, new List<Dash>() { P4Dash21 });
+                DashSystem D12 = new(NPC, new List<Dash>() { P4Dash12 });
+                DashSystem D22 = new(NPC, new List<Dash>() { P4Dash22 });
+                Blink blink1 = new Blink(NPC);
+                Blink blink2 = new Blink(NPC);
+                Wait w8 = new Wait(NPC);
+                Wait w9 = new Wait(NPC);
+                DeathCycle dc = new DeathCycle(NPC);
+                EndlessEnlightment ee = new EndlessEnlightment(NPC);
+                EnrageCycle ec = new EnrageCycle(NPC);
+                FinalAtk fa = new FinalAtk(NPC);
+                SkillNPC.Register(Ins, step1, step2, blink1, blink2, P4Dash11, P4Dash21, P4Dash12, P4Dash22, dc, ee, ec, fa, w8, w9, D11, D21, D12, D22);
+                ec.AddBySkilles(step1, D11, blink1, D21, w8, dc, ee, D12, blink2, D22, w9, step2, D11, D21, D12, D22);
+                fa.AddBySkilles(step1, D11, blink1, D21, w8, dc, ee, D12, blink2, D22, w9, step2, D11, D21, D12, D22);
+                fa.AddSkill(onDead);
+                Ins.AddSkill(step1).AddSkill(D11).AddSkill(blink1).AddSkill(D21).AddSkill(w8).AddSkill(dc).AddSkill(ee).AddSkill(D12).AddSkill(blink2).AddSkill(D22).AddSkill(w9).AddSkill(step1);
+                CurrentSkill = Ins;
+            }
             #endregion
             #endregion
         }
@@ -245,5 +330,10 @@ namespace CalamityYharonChange.Content.NPCs.YharonNPC
         {
 
         }
+        public override bool PreKill()
+        {
+            return base.PreKill();
+        }
+
     }
 }

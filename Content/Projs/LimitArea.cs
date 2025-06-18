@@ -9,7 +9,7 @@ namespace CalamityYharonChange.Content.Projs
         public override string Texture => "Terraria/Images/Item_0";
         public override void SetStaticDefaults()
         {
-            ProjectileID.Sets.DrawScreenCheckFluff[Projectile.type] = 1000;
+            ProjectileID.Sets.DrawScreenCheckFluff[Projectile.type] = 2000;
         }
         public override void SetDefaults()
         {
@@ -31,10 +31,17 @@ namespace CalamityYharonChange.Content.Projs
         public override void AI()
         {
             NPC npc = Main.npc[(int)Projectile.ai[0]];
-            Projectile.Center = Vector2.Lerp(Projectile.Center,npc.Center,0.05f);
             if(npc.type != ModContent.NPCType<YharonNPC>()||!npc.active)
             {
                 Projectile.Kill();
+            }
+            else
+            {
+                if (Projectile.ai[2] > 0)
+                {
+                    Projectile.timeLeft++;
+                    if (Projectile.ai[1] < Projectile.ai[2]) Projectile.ai[1]+=20;
+                }
             }
             if(Projectile.timeLeft<20)
             {

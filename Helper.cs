@@ -1,5 +1,6 @@
 ﻿using CalamityYharonChange;
 using Microsoft.Xna.Framework.Graphics;
+using System.Reflection.Metadata.Ecma335;
 using Terraria.GameContent.Drawing;
 
 namespace CalamityYharonChange
@@ -582,6 +583,14 @@ namespace CalamityYharonChange
                 float a = (float)Math.Acos(d);
                 return a;
             }
+        }
+        public static int ProjDmgScaling(float common, float expert, float master)
+        {
+            float d = 0;
+            d = Main.expertMode ?
+                (Main.masterMode ? master / 6f : expert / 4f) :
+                common / 2f;
+            return (int)d;
         }
         public static float AngleBetween(Vector3 u, Vector3 v)//求两向量之间的夹角
         {

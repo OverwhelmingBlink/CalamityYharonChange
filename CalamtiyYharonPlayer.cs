@@ -1,7 +1,12 @@
 ﻿using CalamityMod;
 using CalamityMod.Buffs.DamageOverTime;
+using CalamityYharonChange.Buffs;
 using CalamityYharonChange.Content.Buffs;
+using CalamityYharonChange.Content.NPCs.YharonNPC;
+using CalamityYharonChange.Content.Projs;
+using CalamityYharonChange.Content.Projs.Bosses.Yharon;
 using CalamityYharonChange.Content.Systems;
+using CalamityYharonChange.Core.SkillsNPC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +26,8 @@ namespace CalamityYharonChange
         /// </summary>
         public bool flyWind;
         public int PlayerFly;
+        public int DmgDec=0;
+        public bool canBeHitByRing = true;
         public override void ResetEffects()
         {
             hellDragonFire = false;
@@ -30,14 +37,38 @@ namespace CalamityYharonChange
         {
             hellDragonFire = false;
             flyWind = false;
+            DmgDec = 0;
         }
         public override void PreUpdate()
         {
             if (YharonChangeSystem.YharonBoss != -1)
             {
-                if (Math.Abs(Player.Center.X - YharonChangeSystem.YharonFixedPos.X) > 960 || Math.Abs(Player.Center.Y - YharonChangeSystem.YharonFixedPos.Y) > 4000)
+                if(YharonNPC.Mode != 4)
                 {
-                    Player.AddBuff(ModContent.BuffType<HellDragonfire>(), 20);
+                    if (Math.Abs(Player.Center.X - YharonChangeSystem.YharonFixedPos.X) > 960 || Math.Abs(Player.Center.Y - YharonChangeSystem.YharonFixedPos.Y) > 4000)
+                    {
+                        Player.AddBuff(ModContent.BuffType<HellDragonfire>(), 20);
+                    }
+                }
+                else
+                {
+                    foreach (Projectile p in Main.projectile)
+                    {
+                        if (p is not null && p.active && p.timeLeft > 0)
+                        {
+                            if (p.type == ModContent.ProjectileType<LimitArea>())
+                            {
+                                float d = p.ai[1];
+                                if (d > 0)
+                                {
+                                    if (Vector2.Distance(Player.Center, p.Center) > d)
+                                    {
+                                        Player.AddBuff(ModContent.BuffType<HellDragonfire>(), 20);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -61,9 +92,22 @@ namespace CalamityYharonChange
             ApplyDoTDebuff(hellDragonFire, 200);
             ApplyDoTDebuff(flyWind, 100);
         }
+        public override void ModifyHitNPC(NPC target, ref NPC.HitModifiers modifiers)
+        {
+            if (DmgDec > 0)
+            {
+                modifiers.FinalDamage *= (10 - DmgDec) / 10f;
+            }
+        }
+        public override void ModifyHitNPCWithProj(Projectile proj, NPC target, ref NPC.HitModifiers modifiers)
+        {
+            if (DmgDec > 0)
+            {
+                modifiers.FinalDamage *= (10 - DmgDec) / 10f;
+            }
+        }
         public override void PreUpdateMovement()
         {
-            base.PreUpdateMovement();
             if(PlayerFly > 0)
             {
                 PlayerFly--;
@@ -71,11 +115,36 @@ namespace CalamityYharonChange
             }
             if (YharonChangeSystem.YharonBoss != -1)
             {
-                if (Math.Abs(Player.Center.X - YharonChangeSystem.YharonFixedPos.X) > 960 || Math.Abs(Player.Center.Y - YharonChangeSystem.YharonFixedPos.Y) > 4000)
+                if (YharonNPC.Mode != 4)
                 {
-                    Player.velocity += (YharonChangeSystem.YharonFixedPos - Player.Center).SafeNormalize(default);
+                    if (Math.Abs(Player.Center.X - YharonChangeSystem.YharonFixedPos.X) > 960 || Math.Abs(Player.Center.Y - YharonChangeSystem.YharonFixedPos.Y) > 4000)
+                    {
+                        Player.velocity += (YharonChangeSystem.YharonFixedPos - Player.Center).SafeNormalize(default);
+                    }
+                }
+                else
+                {
+                    foreach (Projectile p in Main.projectile)
+                    {
+                        if (p is not null && p.active && p.timeLeft > 0)
+                        {
+                            if (p.type == ModContent.ProjectileType<LimitArea>())
+                            {
+                                float d = p.ai[1];
+                                if (d > 1000f)
+                                {
+                                    if (Vector2.Distance(Player.Center, YharonChangeSystem.YharonFixedPos) > d)
+                                    {
+                                        Player.Center = (-YharonChangeSystem.YharonFixedPos + Player.Center).SafeNormalize(default) * d + YharonChangeSystem.YharonFixedPos;
+                                        Player.AddBuff(ModContent.BuffType<DmgDecrease>(),3600);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            base.PreUpdateMovement();
         }
         void ApplyDoTDebuff(bool hasDebuff, int negativeLifeRegenToApply, bool immuneCondition = false)
         {
@@ -88,6 +157,42 @@ namespace CalamityYharonChange
 
                 Player.lifeRegenTime = 0f;
                 Player.lifeRegen -= negativeLifeRegenToApply;
+            }
+        }
+        public override void ModifyScreenPosition()
+        {
+            foreach (NPC npc in Main.npc)
+            {
+                if (npc.active &&npc.life > 0 && npc.type == ModContent.NPCType<YharonNPC>())
+                {
+                    if (YharonNPC.Mode == 4 && YharonNPC.Killed)
+                    {
+                        float t = npc.ai[0];
+                        if (t < 30) Main.screenPosition = Vector2.Lerp(Main.screenPosition, npc.Center - new Vector2(Main.screenWidth / 2, Main.screenHeight / 2), t / 30f);
+                        if (t >= 30 && t < 150) Main.screenPosition = npc.Center - new Vector2(Main.screenWidth / 2, Main.screenHeight / 2);
+                        if (t >= 150 && t < 180)
+                        {
+                            float tt = t - 150;
+                            Main.screenPosition = Vector2.Lerp(Main.screenPosition, npc.Center - new Vector2(Main.screenWidth / 2, Main.screenHeight / 2),(30 - tt) / 30f);
+                        }
+                    }
+                    if(YharonNPC.Mode == 4)
+                    {
+                        foreach (Projectile p in Main.projectile)
+                        {
+                            if (p.type == ModContent.ProjectileType<FlareRingP4>() && p.timeLeft > 0)
+                            {
+                                if (p.ai[2]> 20)
+                                {
+                                    float max = p.ai[2];
+                                    float t = p.timeLeft;
+                                    float value = max / 2 - Math.Abs(-t + max / 2);
+                                    Main.screenPosition += Main.rand.NextVector2CircularEdge(value, value) * 3;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

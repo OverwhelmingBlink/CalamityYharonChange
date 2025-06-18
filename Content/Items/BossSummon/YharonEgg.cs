@@ -37,7 +37,10 @@ namespace CalamityYharonChange.Content.Items.BossSummon
         {
             itemGroup = ContentSamples.CreativeHelper.ItemGroup.BossSpawners;
         }
-
+        public override void ModifyTooltips(List<TooltipLine> tooltips)
+        {
+            tooltips.Add(new TooltipLine(Mod,"FavouriteDesc","召唤boss的第一阶段"));
+        }
         public override bool CanUseItem(Player player)
         {
             // If you decide to use the below UseItem code, you have to include !NPC.AnyNPCs(id), as this is also the check the server does when receiving MessageID.SpawnBoss.
@@ -60,6 +63,7 @@ namespace CalamityYharonChange.Content.Items.BossSummon
                 {
                     // If the player is not in multiplayer, spawn directly
                     NPC.NewNPC(player.GetSource_ItemUse(Item), (int)player.position.X, (int)player.position.Y - 200, type);
+                    YharonNPC.Mode = 1;
                 }
                 else
                 {

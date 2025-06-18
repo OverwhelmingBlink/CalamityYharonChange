@@ -18,7 +18,7 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Reference Include="CalamityMod">
-	    <HintPath>..\..\ModReader\CalamityMod\CalamityMod.dll</HintPath>
+	    <HintPath>Assets\CalamityMod.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 

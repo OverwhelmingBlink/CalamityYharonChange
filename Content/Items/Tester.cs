@@ -1,5 +1,7 @@
-﻿using CalamityYharonChange.Content.Particles;
+﻿using CalamityYharonChange.Buffs;
+using CalamityYharonChange.Content.Particles;
 using CalamityYharonChange.Content.Projs;
+using CalamityYharonChange.Content.Projs.Bosses.Yharon;
 using CalamityYharonChange.Core.Particles;
 using CalamityYharonChange.Graphics;
 
@@ -42,17 +44,19 @@ namespace CalamityYharonChange.Content.Items
 
             Vector2 vert = Helper.VerticalVec(dir);
 
-            Projectile.NewProjectile(null, Main.MouseWorld, Vector2.Zero, ModContent.ProjectileType<MoonHalo>(), 100, 1, Main.myPlayer);
+            player.AddBuff(ModContent.BuffType<DragonPressure>(), 300);
+           // Projectile.NewProjectile(null, Main.MouseWorld, dir, ModContent.ProjectileType<FlareRingP4>(), 1, 1, Main.myPlayer,0,1000,30);
+          //  Projectile.NewProjectile(null, Main.MouseWorld, Vector2.Zero, ModContent.ProjectileType<MoonHalo>(), 100, 1, Main.myPlayer);
 
-            Projectile.NewProjectile(null, Main.MouseWorld + vert * 500, dir.RotatedBy(0f) , ModContent.ProjectileType<FireBurst_Rectangle>(), 100, 1, Main.myPlayer, 0, 8000, 800);
-            Projectile.NewProjectile(null, Main.MouseWorld - vert * 500, dir.RotatedBy(0f) , ModContent.ProjectileType<FireBurst_Rectangle>(), 100, 1, Main.myPlayer, 0, 8000, 800);
+          //  Projectile.NewProjectile(null, Main.MouseWorld + vert * 500, dir.RotatedBy(0f) , ModContent.ProjectileType<FireBurst_Rectangle>(), 100, 1, Main.myPlayer, 0, 8000, 800);
+          //  Projectile.NewProjectile(null, Main.MouseWorld - vert * 500, dir.RotatedBy(0f) , ModContent.ProjectileType<FireBurst_Rectangle>(), 100, 1, Main.myPlayer, 0, 8000, 800);
 
             //Projectile.NewProjectile(null, Main.MouseWorld, 0 * dir.RotatedBy(0f), ModContent.ProjectileType<LimitArea>(), 100, 1, Main.myPlayer, 0, 900);
 
 
             //Projectile.NewProjectile(null, player.Center, dir*1, ModContent.ProjectileType<MoonHaloLightning>(), 100, 1, Main.myPlayer);
 
-            Projectile.NewProjectile(null, Main.MouseWorld, dir, ModContent.ProjectileType<FireBurst>(), 100, 1, Main.myPlayer);
+           // Projectile.NewProjectile(null, Main.MouseWorld, dir, ModContent.ProjectileType<FireBurst>(), 100, 1, Main.myPlayer);
 
             /*
             Projectile.NewProjectile(null, Main.MouseWorld, dir, ModContent.ProjectileType<FireBurstRing>(), 100, 1, Main.myPlayer, 0, 0f);

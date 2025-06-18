@@ -19,6 +19,11 @@ Projectiles: {
 	FireBurst_Rectangle.DisplayName: Fire Burst_ Rectangle
 	FireBurstRing2.DisplayName: Fire Burst Ring2
 	LimitArea.DisplayName: Limit Area
+	FlareP4.DisplayName: Flare P4
+	SteppingBoomProj.DisplayName: Stepping Boom Proj
+	DeathFlameColumn.DisplayName: Death Flame Column
+	DeathFlameAura.DisplayName: Death Flame Aura
+	FlareRingP4.DisplayName: Flare Ring P4
 }
 
 Buffs: {
@@ -30,6 +35,26 @@ Buffs: {
 	FlyWind: {
 		DisplayName: 撕裂
 		Description: 你的五脏六腑已被撕裂
+	}
+
+	DmgDecrease: {
+		DisplayName: Dmg Decrease
+		Description: Mods.CalamityYharonChange.Buffs.DmgDecrease.Description
+	}
+
+	DoomKotodama: {
+		DisplayName: Doom Kotodama
+		Description: Mods.CalamityYharonChange.Buffs.DoomKotodama.Description
+	}
+
+	DragonPressure: {
+		DisplayName: Dragon Pressure
+		Description: Mods.CalamityYharonChange.Buffs.DragonPressure.Description
+	}
+
+	SeventhCata: {
+		DisplayName: Seventh Cata
+		Description: Mods.CalamityYharonChange.Buffs.SeventhCata.Description
 	}
 }
 
@@ -77,6 +102,11 @@ Items: {
 
 	Tester: {
 		DisplayName: Tester
+		Tooltip: ""
+	}
+
+	YharonEgg4: {
+		DisplayName: Yharon Egg4
 		Tooltip: ""
 	}
 }
